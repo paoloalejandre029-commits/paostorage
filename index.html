@@ -14,7 +14,8 @@
         .upload-btn:hover { background: #00e5ff; transform: translateY(-2px); }
         .upload-btn:active { transform: translateY(1px); }
         #fileInput { display: none; }
-        #status { margin-top: 20px; font-size: 0.9rem; color: #00adb5; }
+        #status { margin-top: 20px; font-size: 0.9rem; color: #00adb5; line-height: 1.4; }
+        .upload-container { display: none; } /* Kept hidden so the button triggers it nicely */
     </style>
 </head>
 <body>
@@ -24,63 +25,58 @@
     <p>Secure, minimalist cloud storage for your files.</p>
     
     <div class="upload-container">
-  <label for="fileInput" class="upload-label">Choose a file to upload:</label>
-  <input type="file" id="fileInput" title="Choose file to upload to PaoStorage" aria-label="Choose file to upload to PaoStorage">
-</div>
+        <label for="fileInput" class="upload-label">Choose a file to upload:</label>
+        <input type="file" id="fileInput" title="Choose file to upload to PaoStorage" aria-label="Choose file to upload to PaoStorage">
+    </div>
     <button class="upload-btn" onclick="triggerUpload()">Upload File</button>
     
     <div id="status"></div>
 </div>
 
 <script>
-    // REPLACE THIS with your actual Vercel API endpoint
-    const VERCEL_BACKEND_URL = 'https://paostorage-backend.vercel.app/api/upload';
+    // 1. CONFIGURATION: Change these to match your Cloudinary details
+    const CLOUD_NAME = 'daowmdyto'; 
+    const UPLOAD_PRESET = 'paostorage_preset'; // The name you saved in your dashboard
 
+    // Triggers the hidden file selector when the button is clicked
     function triggerUpload() {
         document.getElementById('fileInput').click();
     }
 
+    // Handles the file upload process as soon as a file is picked
     document.getElementById('fileInput').addEventListener('change', async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
+        const file = event.target.files[0];
+        if (!file) return;
 
-    const statusDiv = document.getElementById('status');
-    statusDiv.innerText = `Uploading: ${file.name}...`;
+        const statusDiv = document.getElementById('status');
+        statusDiv.innerText = `Uploading: ${file.name}...`;
 
-    // Helper to read file as Base64 string
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = async () => {
-        const base64Data = reader.result.split(',')[1]; // Strip the data URL prefix
-
-        const payload = {
-            fileName: file.name,
-            mimeType: file.type,
-            fileData: base64Data
-        };
+        // Pack file data using standard HTML5 FormData
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', UPLOAD_PRESET);
 
         try {
-            const response = await fetch(VERCEL_BACKEND_URL, {
+            // Send request straight to Cloudinary's public endpoint
+            const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
+                body: formData
             });
 
             const result = await response.json();
 
-            if (response.ok && result.success) {
-                statusDiv.innerHTML = `✅ Successfully uploaded!<br><span style="color:#888; font-size:0.8rem;">ID: ${result.fileId}</span>`;
+            if (response.ok) {
+                // Success! Give user a clickable view link to access their file
+                statusDiv.innerHTML = `✅ Successfully uploaded!<br><a href="${result.secure_url}" target="_blank" style="color: #00e5ff; text-decoration: underline; font-size: 0.95rem; font-weight: bold; display: inline-block; margin-top: 5px;">View Uploaded File</a>`;
             } else {
-                statusDiv.innerText = `❌ Upload failed: ${result.error || 'Unknown error'}`;
+                // Handle Cloudinary error response messages
+                statusDiv.innerText = `❌ Upload failed: ${result.error?.message || 'Unknown Cloudinary error'}`;
             }
         } catch (error) {
-            statusDiv.innerText = '❌ Network error connecting to backend.';
+            statusDiv.innerText = '❌ Network error connecting to Cloudinary.';
             console.error(error);
         }
-    };
-});
+    });
 </script>
 
 </body>
