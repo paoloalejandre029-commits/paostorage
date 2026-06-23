@@ -23,7 +23,10 @@
     <h1>PAOSTORAGE</h1>
     <p>Secure, minimalist cloud storage for your files.</p>
     
-    <input type="file" id="fileInput">
+    <div class="upload-container">
+  <label for="fileInput" class="upload-label">Choose a file to upload:</label>
+  <input type="file" id="fileInput" title="Choose file to upload to PaoStorage" aria-label="Choose file to upload to PaoStorage">
+</div>
     <button class="upload-btn" onclick="triggerUpload()">Upload File</button>
     
     <div id="status"></div>
