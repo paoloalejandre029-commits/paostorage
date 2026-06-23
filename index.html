@@ -38,19 +38,31 @@
     }
 
     document.getElementById('fileInput').addEventListener('change', async (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
+    const file = event.target.files[0];
+    if (!file) return;
 
-        const statusDiv = document.getElementById('status');
-        statusDiv.innerText = `Uploading: ${file.name}...`;
+    const statusDiv = document.getElementById('status');
+    statusDiv.innerText = `Uploading: ${file.name}...`;
 
-        const formData = new FormData();
-        formData.append('file', file);
+    // Helper to read file as Base64 string
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = async () => {
+        const base64Data = reader.result.split(',')[1]; // Strip the data URL prefix
+
+        const payload = {
+            fileName: file.name,
+            mimeType: file.type,
+            fileData: base64Data
+        };
 
         try {
             const response = await fetch(VERCEL_BACKEND_URL, {
                 method: 'POST',
-                body: formData
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
             });
 
             const result = await response.json();
@@ -64,7 +76,8 @@
             statusDiv.innerText = '❌ Network error connecting to backend.';
             console.error(error);
         }
-    });
+    };
+});
 </script>
 
 </body>
